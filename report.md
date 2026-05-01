@@ -164,6 +164,21 @@ This distinction matters because including the current day would allow the model
 
 Because the model is Ridge Regression with standardized features, feature importance is interpreted using the absolute value of standardized coefficients. Larger coefficients mean the model relies more heavily on that feature.
 
+In addition to global feature importance, the notebook now also exports local SHAP-style explanations for selected forecast dates:
+
+```text
+models/shap_local_contributions.csv
+models/shap_business_summary.csv
+```
+
+For this Ridge model, the local explanation is exact for the standardized linear prediction. Each prediction on the log scale can be decomposed into:
+
+```text
+baseline prediction + sum(feature contributions)
+```
+
+This provides the same practical purpose as SHAP for this linear model: it shows which features push a specific day's forecast up or down relative to the model baseline. The report therefore covers both global importance and local forecast-level explanation.
+
 The most important signals in local validation include:
 
 | Important feature | Business interpretation |
@@ -193,6 +208,15 @@ This interpretation is useful because it does not treat the model as a black box
 - align promotions and traffic campaigns with seasonal peaks;
 - track product-category mix because revenue and COGS move differently depending on what is sold.
 
+The local SHAP-style outputs make this explanation more actionable. For example, if a future date has a high predicted `Revenue`, the explanation table can identify whether that forecast is mainly driven by yearly seasonality, recent sales momentum, inventory availability, promotion intensity, or traffic profile. If another date has a lower prediction, the same table can show whether the forecast is being pulled down by weaker historical demand, refund pressure, stockout-related signals, or unfavorable calendar effects.
+
+This matters for business users because it turns a single forecast number into an operational reading:
+
+- a seasonality-driven high forecast suggests planning inventory earlier;
+- a traffic-driven high forecast suggests coordinating marketing spend with demand peaks;
+- a refund-driven negative contribution suggests monitoring customer experience and return reasons;
+- an inventory-driven negative contribution suggests checking stock availability before the expected demand window.
+
 ## 9. Reproducibility
 
 The solution is reproducible from the repository:
@@ -218,11 +242,10 @@ The submission preserves the row order from `sample_submission.csv` by merging p
 
 The current model is intentionally stable and interpretable. However, there are several ways to improve performance:
 
-1. Add a tree-based boosting model such as LightGBM, XGBoost, or CatBoost if extra dependencies are allowed.
-2. Ensemble Ridge predictions with a seasonal baseline to reduce variance.
-3. Add SHAP values for a richer local explanation of individual forecast dates.
-4. Tune Ridge regularization strength using multiple chronological validation folds.
-5. Train separate specialized models for high-season and normal-season periods.
+1. Ensemble Ridge predictions with a seasonal baseline to reduce variance.
+2. Tune Ridge regularization strength using multiple chronological validation folds.
+3. Train separate specialized Ridge models for high-season and normal-season periods.
+4. Expand local SHAP-style explanations to more forecast dates, such as monthly peaks, low-demand days, and promotion-heavy periods.
+5. Add more business-level diagnostics around inventory constraints, refunds, and regional demand mix.
 
 The current version prioritizes leakage safety, reproducibility, and explainability, which are directly aligned with the technical report criteria for Task 3.
-
